@@ -1,0 +1,35 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    title Filtering marker cluster groups
+    meta(name='viewport', content='initial-scale=1,maximum-scale=1,user-scalable=no')
+    link(href='https://api.mapbox.com/mapbox.js/v2.2.2/mapbox.css', rel='stylesheet')
+    link(href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.css', rel='stylesheet')
+    link(href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.Default.css', rel='stylesheet')
+    style.
+      body { margin:0; padding:0; }
+      #map { position:absolute; top:0; bottom:0; width:100%; }
+      #colors {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: #fff;
+      width: 150px;
+      padding:5px;
+      }
+  body
+    #map
+    form#colors
+      
+      div
+        input(type='checkbox', name='filters', onclick='showSpots();', value='crime', checked='')
+        |  Crime Hot Spot
+      |   
+      div
+        input(type='checkbox', name='filters', onclick='showSpots();', value='accident', checked='')
+        |  Car Accident
+
+    script(src='https://api.mapbox.com/mapbox.js/v2.2.2/mapbox.js')
+    script(src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js')
+    script(src='js/main-map.js')
