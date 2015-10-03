@@ -11,7 +11,7 @@ html
     style.
       body { margin:0; padding:0; }
       #map { position:absolute; top:0; bottom:0; width:100%; }
-      #colors {
+      #control-panel {
         position: absolute;
         top: 0;
         right: 0;
@@ -20,10 +20,10 @@ html
         padding:5px;
         opacity: 0.9;
       }
-      #colors > div{
+      #control-panel > div{
         padding: 5px;
       }
-
+      
       .car-number{
         width: 15px;
         height: 20px;
@@ -31,9 +31,32 @@ html
       .button{
         width: 100%;
       }
+
+      #time-panel{
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        background: #fff;
+        width: 100%;
+        height: 50px;
+        padding: 10px;
+        opacity: 0.9;
+      }
+      #time-slider{
+        margin: 0 15px 5px 15px;
+      }
+      .time-frame{
+        margin-bottom: 10px;
+      }
+      #show-time{
+      }
+      #events-title{
+        margin-left: 100px
+      }
   body
     #map
-    form#colors
+    form#control-panel
       
       div
         label.checkbox(for="crime-check")
@@ -50,6 +73,14 @@ html
       div
         button#start-routing.button.btn.btn-embossed.btn-primary
           | Patrol
+    
+    form#time-panel
+      #time-slider
+      .time-frame 
+        span Time Frame: 
+        span#show-time
+        span#events-title Events:
+        span#amount
 
     script(src='https://api.mapbox.com/mapbox.js/v2.2.2/mapbox.js')
     script(src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js')

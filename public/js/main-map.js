@@ -22,7 +22,7 @@ var myLayer = L.mapbox.featureLayer()
     showSpots();
   });
 
-var filters = document.getElementById('colors').filters;
+var filters = document.getElementById('control-panel').filters;
 
 // There are many ways to filter data. Mapbox.js has the .setFilter method,
 // but it only applies to L.mapbox.featureLayer layers, and that isn't what
@@ -31,8 +31,8 @@ var filters = document.getElementById('colors').filters;
 // in a loop.
 
 
-var geojson = { type: 'LineString', coordinates: [] }; //for car routing
-function showSpots() {
+var showingSpots = { type: 'LineString', coordinates: [] }; //for car routing
+function showSpots(timeFrame) {
   // first collect all of the checked boxes and create an array of strings
   // like ['green', 'blue']
   var list = [];
@@ -66,12 +66,23 @@ function showSpots() {
   }).addTo(overlays);
 
   
-  geojson.coordinates = [];
+  showingSpots.coordinates = [];
   // and add any markers that fit the filtered criteria to that group.
   layers.eachLayer(function(layer) {
     if (list.indexOf(layer.feature.properties.line) !== -1) {
-      geojson.coordinates.push(layer.feature.geometry.coordinates);
-      clusterGroup.addLayer(layer);
+
+      //time frame filter
+      if(timeFrame && layer.feature.properties.hour){
+        if(layer.feature.properties.hour >= timeFrame[0] &&
+          layer.feature.properties.hour < timeFrame[1]){
+          showingSpots.coordinates.push(layer.feature.geometry.coordinates);
+          clusterGroup.addLayer(layer);
+        }
+
+      }else{
+        showingSpots.coordinates.push(layer.feature.geometry.coordinates);
+        clusterGroup.addLayer(layer);
+      }
     }
   });
 }
@@ -79,19 +90,8 @@ function showSpots() {
 // var ticking;
 // var policeMarker;
 var policeMarkers = [];
-function startRouting(e) {
-  e.preventDefault();
-  // Add this generated geojson object to the map.
-  //L.geoJson(geojson).addTo(map);
 
-
-  //clear
-  // if(typeof policeMarker !== 'undefined'){
-  //   console.log('clear');
-  //   // policeMarker.clearLayers();
-  //   map.removeLayer(policeMarker);
-  //   clearTimeout(ticking);
-  // }
+function clearPoliceMarkers() {
   if(policeMarkers.length > 0){
     for(var i=policeMarkers.length;i--;){
       console.log('remove');
@@ -99,9 +99,15 @@ function startRouting(e) {
     }
     policeMarkers = [];
   }
+}
+
+function startRouting(e) {
+  e && e.preventDefault();
+  // Add this generated showingSpots object to the map.
+  //L.showingSpots(showingSpots).addTo(map);
+
+  clearPoliceMarkers()
   
-  // Create a counter with a value of 0.
-  var j = 0;
 
   // Create a marker and add it to the map.
   
@@ -111,7 +117,7 @@ function startRouting(e) {
   for(var i=cn; i--;){
     policeMarker = L.marker([121.509279+0.01*i,25.070475+0.01*i], {
       icon: L.icon({
-        // this feature is in the GeoJSON format: see geojson.org
+        // this feature is in the showingSpots format: see showingSpots.org
         // for the full specification
         
           "iconUrl": '/img/police-car.png',
@@ -136,19 +142,23 @@ function startRouting(e) {
     });
   }
 
+
+  
+
   function findRouting(start, policeMarkerTemp, callback){
     console.log('start: '+ start);
-    console.log(geojson.coordinates.length);
-    var samplePointsLength = Math.min(20,geojson.coordinates.length-start);
-    var maxc = geojson.coordinates.length > samplePointsLength? samplePointsLength: geojson.coordinates.length;
+    console.log(showingSpots.coordinates.length);
+    var samplePointsLength = Math.min(20,showingSpots.coordinates.length-start);
+    var maxc = showingSpots.coordinates.length > samplePointsLength? samplePointsLength: showingSpots.coordinates.length;
     var waypoints = [];
-    var lastPoint = null;
+    var uniq = []
     for(var i=0;i<samplePointsLength; i++){
-      if(lastPoint && lastPoint==(geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]))
-        continue;
-      waypoints.push([geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]]);
-      lastPoint=(geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]);
+      if(uniq.indexOf(showingSpots.coordinates[start+i][0]) == -1){ //dirty hack
+        uniq.push(showingSpots.coordinates[start+i][0]);
+        waypoints.push([showingSpots.coordinates[start+i][0],showingSpots.coordinates[start+i][1]]);
+      }
     }
+    console.log(waypoints.length);
     findDirection(waypoints, policeMarkerTemp, function(data, policeMarkerTemp) {
       callback && callback(data, policeMarkerTemp);
     });
@@ -156,7 +166,7 @@ function startRouting(e) {
 
   for(var i=policeMarkers.length; i--; ){
     var policeMarkerTemp = policeMarkers[i];
-    var r = Math.floor(geojson.coordinates.length/policeMarkers.length)*i;
+    var r = Math.floor(showingSpots.coordinates.length/policeMarkers.length)*i;
     findRouting(r, policeMarkerTemp, function(data, policeMarkerTemp) {
       policeMarkerTemp.route = data.routes[0];
       console.log(policeMarkerTemp.aid);
@@ -188,3 +198,20 @@ function startRouting(e) {
 
 $('#start-routing').click(startRouting);
 $(':checkbox').radiocheck();
+var $slider = $('#time-slider');
+$slider.slider({
+  min: 0,
+  max: 24,
+  values: [12,16],
+  orientation: "horizontal",
+  range: true,
+  slide: function(e, ui) {
+    showSpots([ui.values[0], ui.values[1]]);
+    if(policeMarkers.length > 0){
+      startRouting();
+    }
+    $('#show-time').text(ui.values[0]+':00 - ' + ui.values[1] + ':00');
+    $('#amount').text(showingSpots.coordinates.length);
+  }
+});
+$('#amount').text(showingSpots.coordinates.length);
