@@ -76,8 +76,9 @@ function showSpots() {
   });
 }
 
-var ticking;
-var policeMarker;
+// var ticking;
+// var policeMarker;
+var policeMarkers = [];
 function startRouting(e) {
   e.preventDefault();
   // Add this generated geojson object to the map.
@@ -85,11 +86,18 @@ function startRouting(e) {
 
 
   //clear
-  if(typeof policeMarker !== 'undefined'){
-    console.log('clear');
-    // policeMarker.clearLayers();
-    map.removeLayer(policeMarker);
-    clearTimeout(ticking);
+  // if(typeof policeMarker !== 'undefined'){
+  //   console.log('clear');
+  //   // policeMarker.clearLayers();
+  //   map.removeLayer(policeMarker);
+  //   clearTimeout(ticking);
+  // }
+  if(policeMarkers.length > 0){
+    for(var i=policeMarkers.length;i--;){
+      console.log('remove');
+      map.removeLayer(policeMarkers[i]);
+    }
+    policeMarkers = [];
   }
   
   // Create a counter with a value of 0.
@@ -99,9 +107,9 @@ function startRouting(e) {
   
   var cn = document.getElementById('car-number').value;
   console.log(cn);
-  var policeMarkers = [];
-  for(var i=1; i--;){
-    policeMarker = L.marker([0, 0], {
+  var policeMarker;
+  for(var i=cn; i--;){
+    policeMarker = L.marker([121.509279+0.01*i,25.070475+0.01*i], {
       icon: L.icon({
         // this feature is in the GeoJSON format: see geojson.org
         // for the full specification
@@ -112,61 +120,71 @@ function startRouting(e) {
           "popupAnchor": [0, -25]
       })
     }).addTo(map);
+    // console.log('policeMarker.setLatLng');
+    // policeMarker.setLatLng();
+    policeMarker.aid = i;
     policeMarkers.push(policeMarker);
   }
 
 
 
-  function findDirection (waypoints, callback) {
+  function findDirection (waypoints, policeMarkerTemp, callback) {
     var url = 'https://api.mapbox.com/v4/directions/mapbox.driving/' +
     waypoints.join(';') + '.json?access_token=' + L.mapbox.accessToken;
     $.getJSON(url, function(data) {
-      console.dir(data);
-      callback && callback(data);
+      callback && callback(data, policeMarkerTemp);
     });
   }
 
-  function findRouting(start, callback){
-    var samplePointsLength = Math.min(20,geojson.coordinates.length);
-    var maxc = geojson.coordinates.length > samplePointsLength? samplePointsLength: geojson.coordinates;
+  function findRouting(start, policeMarkerTemp, callback){
+    console.log('start: '+ start);
+    console.log(geojson.coordinates.length);
+    var samplePointsLength = Math.min(20,geojson.coordinates.length-start);
+    var maxc = geojson.coordinates.length > samplePointsLength? samplePointsLength: geojson.coordinates.length;
     var waypoints = [];
-    var lastPoint;
+    var lastPoint = null;
     for(var i=0;i<samplePointsLength; i++){
       if(lastPoint && lastPoint==(geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]))
         continue;
       waypoints.push([geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]]);
       lastPoint=(geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]);
     }
-    console.dir(waypoints);
-    findDirection(waypoints, function(data) {
-      callback && callback(data);
+    findDirection(waypoints, policeMarkerTemp, function(data, policeMarkerTemp) {
+      callback && callback(data, policeMarkerTemp);
     });
   }
 
-  var route;
-  findRouting(0, function(data) {
-    route = data.routes[0];
-    tick();
-  });
+  for(var i=policeMarkers.length; i--; ){
+    var policeMarkerTemp = policeMarkers[i];
+    var r = Math.floor(geojson.coordinates.length/policeMarkers.length)*i;
+    findRouting(r, policeMarkerTemp, function(data, policeMarkerTemp) {
+      policeMarkerTemp.route = data.routes[0];
+      console.log(policeMarkerTemp.aid);
+      policeMarkerTemp.j = 0;
+      tick(policeMarkerTemp);
+    });
+  }
 
 
   
-  function tick() {
-
+  function tick(policeCar) {
       // Set the marker to be at the same point as one
       // of the segments or the line.
-      policeMarker.setLatLng(L.latLng(
-          route.geometry.coordinates[j][1],
-          route.geometry.coordinates[j][0])
+      console.log();
+      policeCar.setLatLng(L.latLng(
+          policeCar.route.geometry.coordinates[policeCar.j][1],
+          policeCar.route.geometry.coordinates[policeCar.j][0])
       );
-
       // Move to the next point of the line
       // until `j` reaches the length of the array.
-      if (++j < route.geometry.coordinates.length){
-        ticking = setTimeout(tick, 700);
+      if (++policeCar.j < policeCar.route.geometry.coordinates.length){
+        ticking = setTimeout(function() {
+          tick(policeCar);
+        }, 700);
       }
   }
   return false;
 }
 
 $('#start-routing').click(startRouting);
+$(':checkbox').radiocheck();
