@@ -29,6 +29,9 @@ var filters = document.getElementById('colors').filters;
 // we're creating - we're making marker groups in a MarkerClusterGroup layer.
 // Thus we distill filtering down to its essential part: an 'if' statement
 // in a loop.
+
+
+var geojson = { type: 'LineString', coordinates: [] }; //for car routing
 function showSpots() {
   // first collect all of the checked boxes and create an array of strings
   // like ['green', 'blue']
@@ -36,6 +39,8 @@ function showSpots() {
   for (var i = 0; i < filters.length; i++) {
     if (filters[i].checked) list.push(filters[i].value);
   }
+  
+
   // then remove any previously-displayed marker groups
   overlays.clearLayers();
   // create a new marker group
@@ -59,10 +64,90 @@ function showSpots() {
       });
     }
   }).addTo(overlays);
+
+  
+  geojson.coordinates = [];
   // and add any markers that fit the filtered criteria to that group.
   layers.eachLayer(function(layer) {
     if (list.indexOf(layer.feature.properties.line) !== -1) {
+      geojson.coordinates.push(layer.feature.geometry.coordinates);
       clusterGroup.addLayer(layer);
     }
   });
+}
+
+var ticking;
+var policeMarker;
+function startRouting() {
+  // Add this generated geojson object to the map.
+  //L.geoJson(geojson).addTo(map);
+
+
+  //clear
+  // if(typeof policeMarker !== 'undefined'){
+  //   map.removeLayer(policeMarker);
+  //   clearTimeout(ticking);
+  // }
+  
+  // Create a counter with a value of 0.
+  var j = 0;
+
+  // Create a marker and add it to the map.
+  var policeMarker = L.marker([0, 0], {
+    icon: L.mapbox.marker.icon({
+      'marker-color': '#f86767'
+    })
+  }).addTo(map);
+
+
+  function findDirection (waypoints, callback) {
+    var url = 'https://api.mapbox.com/v4/directions/mapbox.driving/' +
+    waypoints.join(';') + '.json?access_token=' + L.mapbox.accessToken;
+    $.getJSON(url, function(data) {
+      console.dir(data);
+      callback && callback(data);
+    });
+  }
+
+  function findRouting(start, callback){
+    var samplePointsLength = Math.min(20,geojson.coordinates.length);
+    var maxc = geojson.coordinates.length > samplePointsLength? samplePointsLength: geojson.coordinates;
+    var waypoints = [];
+    var lastPoint;
+    for(var i=0;i<samplePointsLength; i++){
+      if(lastPoint && lastPoint==(geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]))
+        continue;
+      waypoints.push([geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]]);
+      lastPoint=(geojson.coordinates[start+i][0],geojson.coordinates[start+i][1]);
+    }
+    console.dir(waypoints);
+    findDirection(waypoints, function(data) {
+      callback && callback(data);
+    });
+  }
+
+  var route;
+  findRouting(0, function(data) {
+    route = data.routes[0];
+    tick();
+  });
+
+
+  
+  function tick() {
+
+      // Set the marker to be at the same point as one
+      // of the segments or the line.
+      policeMarker.setLatLng(L.latLng(
+          route.geometry.coordinates[j][1],
+          route.geometry.coordinates[j][0])
+      );
+
+      // Move to the next point of the line
+      // until `j` reaches the length of the array.
+      if (++j < route.geometry.coordinates.length){
+        ticking = setTimeout(tick, 700);
+      }
+  }
+  // body...
 }
