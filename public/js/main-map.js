@@ -15,7 +15,7 @@ var layers;
 
 // Since featureLayer is an asynchronous method, we use the `.on('ready'`
 // call to only use its marker data once we know it is actually loaded.
-L.mapbox.featureLayer()
+var myLayer = L.mapbox.featureLayer()
   .loadURL('/data/hot-spot.json')
   .on('ready', function(e) {
     layers = e.target;
@@ -78,26 +78,43 @@ function showSpots() {
 
 var ticking;
 var policeMarker;
-function startRouting() {
+function startRouting(e) {
+  e.preventDefault();
   // Add this generated geojson object to the map.
   //L.geoJson(geojson).addTo(map);
 
 
   //clear
-  // if(typeof policeMarker !== 'undefined'){
-  //   map.removeLayer(policeMarker);
-  //   clearTimeout(ticking);
-  // }
+  if(typeof policeMarker !== 'undefined'){
+    console.log('clear');
+    // policeMarker.clearLayers();
+    map.removeLayer(policeMarker);
+    clearTimeout(ticking);
+  }
   
   // Create a counter with a value of 0.
   var j = 0;
 
   // Create a marker and add it to the map.
-  var policeMarker = L.marker([0, 0], {
-    icon: L.mapbox.marker.icon({
-      'marker-color': '#f86767'
-    })
-  }).addTo(map);
+  
+  var cn = document.getElementById('car-number').value;
+  console.log(cn);
+  var policeMarkers = [];
+  for(var i=1; i--;){
+    policeMarker = L.marker([0, 0], {
+      icon: L.icon({
+        // this feature is in the GeoJSON format: see geojson.org
+        // for the full specification
+        
+          "iconUrl": '/img/police-car.png',
+          "iconSize": [50, 50], // size of the icon
+          "iconAnchor": [25, 25], // point of the icon which will correspond to marker's location
+          "popupAnchor": [0, -25]
+      })
+    }).addTo(map);
+    policeMarkers.push(policeMarker);
+  }
+
 
 
   function findDirection (waypoints, callback) {
@@ -149,5 +166,7 @@ function startRouting() {
         ticking = setTimeout(tick, 700);
       }
   }
-  // body...
+  return false;
 }
+
+$('#start-routing').click(startRouting);

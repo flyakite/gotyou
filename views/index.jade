@@ -40,6 +40,9 @@ html
         position:relative;
         top:1px;
       }
+      .car-number{
+        width: 12px
+      }
 
   body
     #map
@@ -50,11 +53,14 @@ html
         |  Crime Hot Spot
       |   
       div
-        input(type='checkbox', name='filters', onclick='showSpots();', value='accident', checked='')
+        input(type='checkbox', name='filters', onclick='showSpots();', value='accident')
         |  Car Accident
       div
-        button.button(onclick='startRouting(); return false;', value='')
-          | Start Routing
+        input.car-number#car-number(type='text', value=5)
+        |  Police Cars
+      div
+        button.button#start-routing
+          | Patrol
 
     script(src='https://api.mapbox.com/mapbox.js/v2.2.2/mapbox.js')
     script(src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js')
